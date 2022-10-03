@@ -100,8 +100,10 @@ bool Application::Load()
                               GLenum severity,
                               GLsizei,
                               const GLchar* message,
-                              const void*) {
-        if (type == GL_DEBUG_TYPE_ERROR) {
+                              const void*)
+    {
+        if (type == GL_DEBUG_TYPE_ERROR)
+        {
             std::printf(
                 "GL CALLBACK: type = 0x%x, severity = error, message = %s\n",
                 type,

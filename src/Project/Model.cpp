@@ -22,10 +22,12 @@ namespace fs = std::filesystem;
 
 Model::Model(std::string_view file)
 {
-    if (!glGetTextureHandleARB) {
+    if (!glGetTextureHandleARB)
+    {
         glGetTextureHandleARB = (GLuint64(*)(GLuint))glfwGetProcAddress("glGetTextureHandleARB");
     }
-    if (!glMakeTextureHandleResidentARB) {
+    if (!glMakeTextureHandleResidentARB)
+    {
         glMakeTextureHandleResidentARB = (void(*)(GLuint64))glfwGetProcAddress("glMakeTextureHandleResidentARB");
     }
     // Allocate GL buffers

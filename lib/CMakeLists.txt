@@ -92,10 +92,8 @@ if(NOT cgltf_POPULATED)
     FetchContent_Populate(cgltf)
     message("Fetching cgltf")
 
-    add_library(cgltf STATIC
-        ${cgltf_SOURCE_DIR}/cgltf.h
-        cgltf.c)
-    target_include_directories(cgltf PUBLIC ${cgltf_SOURCE_DIR})
+    add_library(cgltf INTERFACE ${cgltf_SOURCE_DIR}/cgltf.h)
+    target_include_directories(cgltf INTERFACE ${cgltf_SOURCE_DIR})
 endif()
 
 #----------------------------------------------------------------------
@@ -112,8 +110,6 @@ if(NOT stb_image_POPULATED)
     FetchContent_Populate(stb_image)
     message("Fetching stb_image")
 
-    add_library(stb_image STATIC
-        ${stb_image_SOURCE_DIR}/stb_image.h
-        stb_image.c)
-    target_include_directories(stb_image PUBLIC ${stb_image_SOURCE_DIR})
+    add_library(stb_image INTERFACE ${stb_image_SOURCE_DIR}/stb_image.h)
+    target_include_directories(stb_image INTERFACE ${stb_image_SOURCE_DIR})
 endif()

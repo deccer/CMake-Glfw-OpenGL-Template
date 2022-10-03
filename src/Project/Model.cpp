@@ -58,37 +58,6 @@ Model::Model(std::string_view file)
     {
         glMakeTextureHandleResidentARB = (void(*)(GLuint64))glfwGetProcAddress("glMakeTextureHandleResidentARB");
     }
-    // Allocate GL buffers
-    glCreateVertexArrays(1, &_vao);
-    glCreateBuffers(1, &_vbo);
-    glCreateBuffers(1, &_ibo);
-    glGenBuffers(1, &_objectData);
-    glGenBuffers(1, &_transformData);
-    glGenBuffers(1, &_textureData);
-    glGenBuffers(1, &_cmds);
-
-    // Hopefully 4MiB are enough
-    // They weren't enough
-    glNamedBufferStorage(_vbo, 274217728, nullptr, GL_DYNAMIC_STORAGE_BIT);
-    glNamedBufferStorage(_ibo, 184217728, nullptr, GL_DYNAMIC_STORAGE_BIT);
-
-    glVertexArrayVertexBuffer(_vao, 0, _vbo, 0, sizeof(Vertex));
-    glVertexArrayElementBuffer(_vao, _ibo);
-
-    glEnableVertexArrayAttrib(_vao, 0);
-    glEnableVertexArrayAttrib(_vao, 1);
-    glEnableVertexArrayAttrib(_vao, 2);
-    glEnableVertexArrayAttrib(_vao, 3);
-
-    glVertexArrayAttribFormat(_vao, 0, 3, GL_FLOAT, GL_FALSE, offsetof(Vertex, position));
-    glVertexArrayAttribFormat(_vao, 1, 3, GL_FLOAT, GL_FALSE, offsetof(Vertex, normal));
-    glVertexArrayAttribFormat(_vao, 2, 2, GL_FLOAT, GL_FALSE, offsetof(Vertex, uv));
-    glVertexArrayAttribFormat(_vao, 3, 4, GL_FLOAT, GL_FALSE, offsetof(Vertex, tangent));
-
-    glVertexArrayAttribBinding(_vao, 0, 0);
-    glVertexArrayAttribBinding(_vao, 1, 0);
-    glVertexArrayAttribBinding(_vao, 2, 0);
-    glVertexArrayAttribBinding(_vao, 3, 0);
 
     // Read GLTF
     cgltf_options options = {};
@@ -110,20 +79,21 @@ Model::Model(std::string_view file)
             continue;
         }
         uint32_t texture;
-        glGenTextures(1, &texture);
-        glBindTexture(GL_TEXTURE_2D, texture);
+        glCreateTextures(GL_TEXTURE_2D, 1, &texture);
 
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTextureParameteri(texture, GL_TEXTURE_WRAP_S, GL_REPEAT);
+        glTextureParameteri(texture, GL_TEXTURE_WRAP_T, GL_REPEAT);
+        glTextureParameteri(texture, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+        glTextureParameteri(texture, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
         int32_t width = 0;
         int32_t height = 0;
         int32_t channels = STBI_rgb_alpha;
         const auto* textureData = stbi_load(texturePath.c_str(), &width, &height, &channels, STBI_rgb_alpha);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, textureData);
-        glGenerateMipmap(GL_TEXTURE_2D);
+        const auto levels = (uint32_t)std::floor(std::log2(std::max(width, height)));
+        glTextureStorage2D(texture, levels, GL_RGBA8, width, height);
+        glTextureSubImage2D(texture, 0, 0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, textureData);
+        glGenerateTextureMipmap(texture);
         stbi_image_free((void*)textureData);
         _textures.emplace_back(texture);
         glMakeTextureHandleResidentARB(_textureHandles.emplace_back(glGetTextureHandleARB(texture)));
@@ -133,6 +103,8 @@ Model::Model(std::string_view file)
     uint32_t transformIndex = 0;
     size_t vertexOffset = 0;
     size_t indexOffset = 0;
+    std::vector<MeshCreateInfo> meshCreateInfos;
+    meshCreateInfos.reserve(1024);
     for (uint32_t i = 0; i < model->scene->nodes_count; ++i)
     {
         std::queue<cgltf_node*> nodes;
@@ -244,7 +216,7 @@ Model::Model(std::string_view file)
                 }
                 const auto baseColorURI = FindTexturePath(basePath, primitive.material->pbr_metallic_roughness.base_color_texture.texture->image);
                 const auto indexCount = indices.size();
-                _meshes.emplace_back(MeshCreateInfo
+                meshCreateInfos.emplace_back(MeshCreateInfo
                 {
                     std::move(vertices),
                     std::move(indices),
@@ -265,6 +237,50 @@ Model::Model(std::string_view file)
                 nodes.push(node->children[j]);
             }
         }
+    }
+    // Allocate GL buffers
+    glCreateVertexArrays(1, &_vao);
+    glCreateBuffers(1, &_vbo);
+    glCreateBuffers(1, &_ibo);
+    glCreateBuffers(1, &_objectData);
+    glCreateBuffers(1, &_transformData);
+    glCreateBuffers(1, &_textureData);
+    glGenBuffers(1, &_cmds);
+
+    size_t vertexSize = 0;
+    size_t indexSize = 0;
+    for (const auto& info : meshCreateInfos)
+    {
+        vertexSize += info.vertices.size() * sizeof(Vertex);
+        indexSize += info.indices.size() * sizeof(uint32_t);
+    }
+
+    glNamedBufferStorage(_vbo, vertexSize, nullptr, GL_DYNAMIC_STORAGE_BIT);
+    glNamedBufferStorage(_ibo, indexSize, nullptr, GL_DYNAMIC_STORAGE_BIT);
+
+    glVertexArrayVertexBuffer(_vao, 0, _vbo, 0, sizeof(Vertex));
+    glVertexArrayElementBuffer(_vao, _ibo);
+
+    glEnableVertexArrayAttrib(_vao, 0);
+    glEnableVertexArrayAttrib(_vao, 1);
+    glEnableVertexArrayAttrib(_vao, 2);
+    glEnableVertexArrayAttrib(_vao, 3);
+
+    glVertexArrayAttribFormat(_vao, 0, 3, GL_FLOAT, GL_FALSE, offsetof(Vertex, position));
+    glVertexArrayAttribFormat(_vao, 1, 3, GL_FLOAT, GL_FALSE, offsetof(Vertex, normal));
+    glVertexArrayAttribFormat(_vao, 2, 2, GL_FLOAT, GL_FALSE, offsetof(Vertex, uv));
+    glVertexArrayAttribFormat(_vao, 3, 4, GL_FLOAT, GL_FALSE, offsetof(Vertex, tangent));
+
+    glVertexArrayAttribBinding(_vao, 0, 0);
+    glVertexArrayAttribBinding(_vao, 1, 0);
+    glVertexArrayAttribBinding(_vao, 2, 0);
+    glVertexArrayAttribBinding(_vao, 3, 0);
+
+    for (auto& info : meshCreateInfos)
+    {
+        info.vbo = _vbo;
+        info.ibo = _ibo;
+        _meshes.emplace_back(info);
     }
 }
 
@@ -292,7 +308,6 @@ void Model::Draw() const
             mesh.NormalTexture()
         });
     }
-    glBindBuffer(GL_UNIFORM_BUFFER, _textureData);
     glNamedBufferData(
         _textureData,
         _textureHandles.size() * sizeof(uint64_t),
@@ -300,7 +315,6 @@ void Model::Draw() const
         GL_DYNAMIC_DRAW);
     glBindBufferBase(GL_UNIFORM_BUFFER, 2, _textureData);
 
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, _objectData);
     glNamedBufferData(
         _objectData,
         objectData.size() * sizeof(ObjectData),
@@ -308,7 +322,6 @@ void Model::Draw() const
         GL_DYNAMIC_DRAW);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, _objectData);
 
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, _transformData);
     glNamedBufferData(
         _transformData,
         _transforms.size() * sizeof(glm::mat4),

@@ -104,12 +104,7 @@ bool Application::Load()
     {
         if (type == GL_DEBUG_TYPE_ERROR)
         {
-            std::printf(
-                "GL CALLBACK: type = 0x%x, severity = error, message = %s\n",
-                type,
-                severity,
-                message);
-            fflush(stdout);
+            spdlog::error("GL CALLBACK: type = {}, severity = error, message = {}\n", type, message);
         }
     }, nullptr);
     glClearColor(0.7f, 0.5f, 0.2f, 1.0f);

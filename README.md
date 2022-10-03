@@ -1,6 +1,7 @@
 # CMake-Glfw-OpenGL-Template
 
 ## What is this?
+
 CMake based C++ Project template with support for glfw, glad, imgui, spdlog, tracy
 
 This template is split into three parts
@@ -35,3 +36,7 @@ This project template assumes the following things
 
 - OpenGL 4.6 support (can be changed in `Application.cpp:59-60`)
 - Resolution >= 1920x1080 so that you can actually use the window (can be changed in `Application.cpp:66-67`)
+
+## What's next?
+
+You most likely dont want to name your program `Project` and or `Project.Library`. Use your favorite search tool and replace `Project.Library` with `UE6.Engine` and `Project` with `UE6` :)

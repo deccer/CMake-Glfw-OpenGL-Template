@@ -25,7 +25,7 @@ bool ProjectApplication::Load()
         return false;
     }
     _shader = std::make_unique<Shader>("../../../shaders/main.vert", "../../../shaders/main.frag");
-    _frog = std::make_unique<Model>("../../../models/frog/frog.gltf");
+    _frog = std::make_unique<Model>("../../../models/deccer_cubes/SM_Deccer_Cubes_Textured_Embedded.gltf");
 
     return true;
 }

@@ -20,6 +20,32 @@ void (*APIENTRY glMakeTextureHandleResidentARB)(GLuint64 handle);
 
 namespace fs = std::filesystem;
 
+static std::string FindTexturePath(const fs::path& basePath, const cgltf_image* image)
+{
+    std::string texturePath;
+    if (texturePath.empty())
+    {
+        auto newPath = basePath / image->name;
+        if (!newPath.has_extension())
+        {
+            if (std::strcmp(image->mime_type, "image/png") == 0)
+            {
+                newPath.replace_extension("png");
+            }
+            else if (std::strcmp(image->mime_type, "image/jpg") == 0)
+            {
+                newPath.replace_extension("jpg");
+            }
+        }
+        texturePath = newPath.generic_string();
+    }
+    else
+    {
+        texturePath = (basePath / image->uri).generic_string();
+    }
+    return texturePath;
+}
+
 Model::Model(std::string_view file)
 {
     if (!glGetTextureHandleARB)
@@ -76,7 +102,7 @@ Model::Model(std::string_view file)
     {
         const auto& material = model->materials[i];
         const auto* image = material.pbr_metallic_roughness.base_color_texture.texture->image;
-        const auto texturePath = (basePath / image->uri).generic_string();
+        const auto texturePath = FindTexturePath(basePath, image);
         if (textureIds.contains(texturePath))
         {
             continue;
@@ -214,9 +240,7 @@ Model::Model(std::string_view file)
                         default: break;
                     }
                 }
-                const auto baseColorURI =
-                    (basePath / primitive.material->pbr_metallic_roughness.base_color_texture.texture->image->uri)
-                        .generic_string();
+                const auto baseColorURI = FindTexturePath(basePath, primitive.material->pbr_metallic_roughness.base_color_texture.texture->image);
                 const auto indexCount = indices.size();
                 _meshes.emplace_back(MeshCreateInfo
                 {

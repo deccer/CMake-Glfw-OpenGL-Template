@@ -6,16 +6,11 @@ target_include_directories(spdlog PUBLIC include)
 
 set(sourceFiles
     Main.cpp
-    Mesh.cpp
-    Model.cpp
-    Shader.cpp
     ProjectApplication.cpp
 )
 set(headerFiles
-    include/Project/Mesh.hpp
-    include/Project/Model.hpp
     include/Project/ProjectApplication.hpp
-    include/Project/Shader.hpp)
+)
 add_executable(Project ${sourceFiles} ${headerFiles})
 
 target_include_directories(Project PRIVATE include)

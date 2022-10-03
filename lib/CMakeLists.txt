@@ -77,3 +77,43 @@ FetchContent_Declare(
 message("Fetching glm")
 FetchContent_MakeAvailable(glm)
 target_compile_definitions(glm INTERFACE GLM_FORCE_SILENT_WARNINGS)
+
+#----------------------------------------------------------------------
+
+FetchContent_Declare(
+    cgltf
+    GIT_REPOSITORY  https://github.com/jkuhlmann/cgltf.git
+    GIT_TAG         master
+    GIT_SHALLOW     TRUE
+    GIT_PROGRESS    TRUE
+)
+FetchContent_GetProperties(cgltf)
+if(NOT cgltf_POPULATED)
+    FetchContent_Populate(cgltf)
+    message("Fetching cgltf")
+
+    add_library(cgltf STATIC
+        ${cgltf_SOURCE_DIR}/cgltf.h
+        cgltf.c)
+    target_include_directories(cgltf PUBLIC ${cgltf_SOURCE_DIR})
+endif()
+
+#----------------------------------------------------------------------
+
+FetchContent_Declare(
+    stb_image
+    GIT_REPOSITORY  https://github.com/nothings/stb.git
+    GIT_TAG         master
+    GIT_SHALLOW     TRUE
+    GIT_PROGRESS    TRUE
+)
+FetchContent_GetProperties(stb_image)
+if(NOT stb_image_POPULATED)
+    FetchContent_Populate(stb_image)
+    message("Fetching stb_image")
+
+    add_library(stb_image STATIC
+        ${stb_image_SOURCE_DIR}/stb_image.h
+        stb_image.c)
+    target_include_directories(stb_image PUBLIC ${stb_image_SOURCE_DIR})
+endif()

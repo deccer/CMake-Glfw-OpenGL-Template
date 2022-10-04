@@ -22,8 +22,8 @@
 #include <vector>
 #include <queue>
 
-static GLuint64 (*APIENTRY glGetTextureHandleARB)(GLuint texture);
-static void (*APIENTRY glMakeTextureHandleResidentARB)(GLuint64 handle);
+//static GLuint64 (*APIENTRY glGetTextureHandleARB)(GLuint texture);
+//static void (*APIENTRY glMakeTextureHandleResidentARB)(GLuint64 handle);
 
 
 static std::string Slurp(std::string_view path)
@@ -214,14 +214,6 @@ void ProjectApplication::MakeShader(std::string_view vertex, std::string_view fr
 }
 
 void ProjectApplication::LoadModel(std::string_view file) {
-    if (!glGetTextureHandleARB)
-    {
-        glGetTextureHandleARB = (GLuint64(*)(GLuint))glfwGetProcAddress("glGetTextureHandleARB");
-    }
-    if (!glMakeTextureHandleResidentARB)
-    {
-        glMakeTextureHandleResidentARB = (void(*)(GLuint64))glfwGetProcAddress("glMakeTextureHandleResidentARB");
-    }
 
     // Read GLTF
     cgltf_options options = {};

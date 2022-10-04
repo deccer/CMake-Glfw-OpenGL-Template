@@ -40,7 +40,7 @@ namespace fs = std::filesystem;
 static std::string FindTexturePath(const fs::path& basePath, const cgltf_image* image)
 {
     std::string texturePath;
-    if (texturePath.empty())
+    if (!image->uri)
     {
         auto newPath = basePath / image->name;
         if (!newPath.has_extension())

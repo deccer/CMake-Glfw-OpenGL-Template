@@ -79,7 +79,7 @@ bool ProjectApplication::Load()
         return false;
     }
     MakeShader("../../../shaders/main.vert", "../../../shaders/main.frag");
-    LoadModel("../../../models/frog/frog.gltf");
+    LoadModel("../../../data/models/SM_Deccer_Cubes_Textured.gltf");
 
     return true;
 }

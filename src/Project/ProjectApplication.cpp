@@ -356,7 +356,8 @@ void ProjectApplication::LoadModel(std::string_view file) {
                     switch (accessor->component_type)
                     {
                         case cgltf_component_type_r_8:
-                        case cgltf_component_type_r_8u: {
+                        case cgltf_component_type_r_8u:
+                        {
                             const auto* ptr = (const uint8_t*)(dataPtr + view->offset + accessor->offset);
                             std::copy(ptr, ptr + accessor->count, std::back_inserter(indices));
                         } break;

@@ -21,10 +21,7 @@
 #include <fstream>
 #include <vector>
 #include <queue>
-
-static GLuint64 (*APIENTRY glGetTextureHandleARB)(GLuint texture);
-static void (*APIENTRY glMakeTextureHandleResidentARB)(GLuint64 handle);
-
+#include <set>
 
 static std::string Slurp(std::string_view path)
 {
@@ -102,13 +99,16 @@ void ProjectApplication::RenderScene()
         uint32_t baseColorIndex;
         uint32_t normalIndex;
     };
-    std::vector<ObjectData> objectData;
-    objectData.reserve(1024);
-    std::vector<MeshIndirectInfo> indirectData;
-    indirectData.reserve(1024);
+    struct BatchData {
+        std::vector<ObjectData> objects;
+        std::vector<MeshIndirectInfo> indirectCommands;
+    };
+    std::vector<BatchData> objectBatches(_frog.cmds.size());
+    std::vector<std::set<uint32_t>> textureHandles(_frog.cmds.size());
     for (const auto& mesh : _frog.meshes)
     {
-        indirectData.emplace_back(MeshIndirectInfo
+        const auto index = mesh.baseColorTexture / 16;
+        objectBatches[index].indirectCommands.emplace_back(MeshIndirectInfo
         {
             mesh.indexCount,
             1,
@@ -116,26 +116,14 @@ void ProjectApplication::RenderScene()
             mesh.vertexOffset,
             1
         });
-        objectData.emplace_back(ObjectData
+        objectBatches[index].objects.emplace_back(ObjectData
         {
             mesh.transformIndex,
-            mesh.baseColorTexture,
+            mesh.baseColorTexture % 16,
             mesh.normalTexture
         });
+        textureHandles[index].insert(_frog.textures[mesh.baseColorTexture]);
     }
-    glNamedBufferData(
-        _frog.textureData,
-        _frog.textureHandles.size() * sizeof(uint64_t),
-        _frog.textureHandles.data(),
-        GL_DYNAMIC_DRAW);
-    glBindBufferBase(GL_UNIFORM_BUFFER, 2, _frog.textureData);
-
-    glNamedBufferData(
-        _frog.objectData,
-        objectData.size() * sizeof(ObjectData),
-        objectData.data(),
-        GL_DYNAMIC_DRAW);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, _frog.objectData);
 
     glNamedBufferData(
         _frog.transformData,
@@ -144,20 +132,38 @@ void ProjectApplication::RenderScene()
         GL_DYNAMIC_DRAW);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, _frog.transformData);
 
-    glBindBuffer(GL_DRAW_INDIRECT_BUFFER, _frog.cmds);
-    glNamedBufferData(
-        _frog.cmds,
-        indirectData.size() * sizeof(MeshIndirectInfo),
-        indirectData.data(),
-        GL_DYNAMIC_DRAW);
+    for (uint32_t index = 0; const auto& batch : objectBatches)
+    {
+        glNamedBufferData(
+            _frog.objectData[index],
+            batch.objects.size() * sizeof(ObjectData),
+            batch.objects.data(),
+            GL_DYNAMIC_DRAW);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, _frog.objectData[index]);
 
-    glBindVertexArray(_frog.vao);
-    glMultiDrawElementsIndirect(
-        GL_TRIANGLES,
-        GL_UNSIGNED_INT,
-        nullptr,
-        indirectData.size(),
-        sizeof(MeshIndirectInfo));
+        glBindBuffer(GL_DRAW_INDIRECT_BUFFER, _frog.cmds[index]);
+        glNamedBufferData(
+            _frog.cmds[index],
+            batch.indirectCommands.size() * sizeof(MeshIndirectInfo),
+            batch.indirectCommands.data(),
+            GL_DYNAMIC_DRAW);
+
+        for (uint32_t offset = 0; const auto texture : textureHandles[index])
+        {
+            glUniform1i(2 + offset, offset);
+            glActiveTexture(GL_TEXTURE0 + offset);
+            glBindTexture(GL_TEXTURE_2D, texture);
+            offset++;
+        }
+        glBindVertexArray(_frog.vao);
+        glMultiDrawElementsIndirect(
+            GL_TRIANGLES,
+            GL_UNSIGNED_INT,
+            nullptr,
+            batch.indirectCommands.size(),
+            sizeof(MeshIndirectInfo));
+        index++;
+    }
 }
 
 void ProjectApplication::RenderUI()
@@ -214,15 +220,6 @@ void ProjectApplication::MakeShader(std::string_view vertex, std::string_view fr
 }
 
 void ProjectApplication::LoadModel(std::string_view file) {
-    if (!glGetTextureHandleARB)
-    {
-        glGetTextureHandleARB = (GLuint64(*)(GLuint))glfwGetProcAddress("glGetTextureHandleARB");
-    }
-    if (!glMakeTextureHandleResidentARB)
-    {
-        glMakeTextureHandleResidentARB = (void(*)(GLuint64))glfwGetProcAddress("glMakeTextureHandleResidentARB");
-    }
-
     // Read GLTF
     cgltf_options options = {};
     cgltf_data* model = nullptr;
@@ -233,6 +230,7 @@ void ProjectApplication::LoadModel(std::string_view file) {
     const auto basePath = path.parent_path();
     std::unordered_map<std::string, size_t> textureIds;
     _frog.textures.reserve(model->materials_count);
+    const uint32_t maxBatches = model->materials_count / 16 + 1;
     for (uint32_t i = 0; i < model->materials_count; ++i)
     {
         const auto& material = model->materials[i];
@@ -260,7 +258,6 @@ void ProjectApplication::LoadModel(std::string_view file) {
         glGenerateTextureMipmap(texture);
         stbi_image_free((void*)textureData);
         _frog.textures.emplace_back(texture);
-        glMakeTextureHandleResidentARB(_frog.textureHandles.emplace_back(glGetTextureHandleARB(texture)));
         textureIds[texturePath] = _frog.textures.size() - 1;
     }
 
@@ -403,14 +400,16 @@ void ProjectApplication::LoadModel(std::string_view file) {
             }
         }
     }
+    _frog.cmds.resize(maxBatches);
+    _frog.objectData.resize(maxBatches);
+
     // Allocate GL buffers
     glCreateVertexArrays(1, &_frog.vao);
     glCreateBuffers(1, &_frog.vbo);
     glCreateBuffers(1, &_frog.ibo);
-    glCreateBuffers(1, &_frog.objectData);
     glCreateBuffers(1, &_frog.transformData);
-    glCreateBuffers(1, &_frog.textureData);
-    glGenBuffers(1, &_frog.cmds);
+    glGenBuffers(_frog.cmds.size(), _frog.cmds.data());
+    glCreateBuffers(_frog.objectData.size(), _frog.objectData.data());
 
     size_t vertexSize = 0;
     size_t indexSize = 0;

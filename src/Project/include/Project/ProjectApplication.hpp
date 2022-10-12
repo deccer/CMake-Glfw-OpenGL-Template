@@ -56,15 +56,13 @@ struct Model
 {
     std::vector<Mesh> meshes;
     std::vector<uint32_t> textures;
-    std::vector<uint64_t> textureHandles;
     std::vector<glm::mat4> transforms;
     uint32_t vao;
     uint32_t vbo;
     uint32_t ibo;
-    uint32_t cmds;
-    uint32_t objectData;
+    std::vector<uint32_t> cmds;
+    std::vector<uint32_t> objectData;
     uint32_t transformData;
-    uint32_t textureData;
 };
 
 class ProjectApplication : public Application

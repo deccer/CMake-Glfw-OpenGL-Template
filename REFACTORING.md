@@ -28,6 +28,7 @@ public:
 
     void Bind() const;
     void Set(uint32_t location, const glm::mat4& matrix) const;
+    void Set(uint32_t location, uint32_t value) const;
 
 private:
     uint32_t _program;
@@ -46,6 +47,7 @@ The next thing is the functionality, this is very basic, and you may
 expand it to suit your needs.
 - `Bind()`: tells OpenGL to use this shader program in the next draw calls, until a new shader is bound.
 - `Set(uint32_t, mat4)`: tells OpenGL to set a `uniform` matrix 4x4 in the shader, at a specific location, if you are not familiar with this, think of this as assigning a value to a "global variable" in the vertex or fragment shader.
+- `Set(uint32_t, int32_t)`: tells OpenGL to set a single `uniform` (unsigned) integer in the shader, at a specific location, if you are not familiar with this, think of this as assigning a value to a "global variable" in the vertex or fragment shader.
 
 Finally, the implementation:
 ```c++
@@ -131,6 +133,11 @@ void Shader::Bind() const
 void Shader::Set(uint32_t location, const glm::mat4& matrix) const
 {
     glUniformMatrix4fv(location, 1, false, glm::value_ptr(matrix));
+}
+
+void Shader::Set(uint32_t location, int32_t value) const
+{
+    glUniform1i(location, value);
 }
 ```
 
@@ -288,25 +295,23 @@ public:
     Model(std::string_view path);
     ~Model();
 
-    void Draw() const;
+    void Draw(const Shader& shader) const;
 
 private:
     // Holds all the meshes that compose the model
     std::vector<Mesh> _meshes;
     // Holds OpenGL texture handles
     std::vector<uint32_t> _textures;
-    // Holds OpenGL bindless texture handles
-    std::vector<uint64_t> _textureHandles;
     // Holds all the local transforms for each mesh
     std::vector<glm::mat4> _transforms;
     // OpenGL buffers
     uint32_t _vao;
     uint32_t _vbo;
     uint32_t _ibo;
-    uint32_t _cmds;
-    uint32_t _objectData;
+    // These are vectors because we'll be batching our draws
+    std::vector<uint32_t> _cmds;
+    std::vector<uint32_t> _objectData;
     uint32_t _transformData;
-    uint32_t _textureData;
 };
 ```
 
@@ -326,12 +331,6 @@ the texture buffer, and the transform buffer.
 
 Finally, the implementation:
 ```c++
-// Global function pointers to OpenGL functions, we need those because we are using bindless textures
-// but this functionality is actually an extension in OpenGL, and since our GLAD is imported with no extensions,
-// we have to manually load those functions.
-GLuint64 (*APIENTRY glGetTextureHandleARB)(GLuint texture);
-void (*APIENTRY glMakeTextureHandleResidentARB)(GLuint64 handle);
-
 namespace fs = std::filesystem;
 
 // Helper function to find the actual texture path given a CGLTF image.
@@ -363,17 +362,6 @@ static std::string FindTexturePath(const fs::path& basePath, const cgltf_image* 
 
 Model::Model(std::string_view file)
 {
-    if (!glGetTextureHandleARB)
-    {
-        // Loads the function pointer
-        glGetTextureHandleARB = (GLuint64(*)(GLuint))glfwGetProcAddress("glGetTextureHandleARB");
-    }
-    if (!glMakeTextureHandleResidentARB)
-    {
-        // Loads the function pointer
-        glMakeTextureHandleResidentARB = (void(*)(GLuint64))glfwGetProcAddress("glMakeTextureHandleResidentARB");
-    }
-
     cgltf_options options = {};
     cgltf_data* model = nullptr;
     // Read GLTF, no additional options are required
@@ -388,6 +376,10 @@ Model::Model(std::string_view file)
     std::unordered_map<std::string, size_t> textureIds;
     // Reserves space for our texture vector
     _textures.reserve(model->materials_count);
+    // Since we'll be batching our draws based on the textures it has, we need to calculate
+    // how many batches this model needs, this is done by dividing by 16, which is the "batch size"
+    // and rounding up, because we always need at least one batch.
+    const uint32_t maxBatches = model->materials_count / 16 + 1;
     for (uint32_t i = 0; i < model->materials_count; ++i) // For each material
     {
         const auto& material = model->materials[i];
@@ -428,8 +420,6 @@ Model::Model(std::string_view file)
         stbi_image_free((void*)textureData);
         // Add the new texture handle to the texture vector
         _textures.emplace_back(texture);
-        // Get the texture address and make it resident, both of these are needed to use bindless textures
-        glMakeTextureHandleResidentARB(_textureHandles.emplace_back(glGetTextureHandleARB(texture)));
         // Register this texture index in our cache
         textureIds[texturePath] = _textures.size() - 1;
     }
@@ -605,6 +595,9 @@ Model::Model(std::string_view file)
             }
         }
     }
+    // Resize the indirect commands vector and the object data vector.
+    _cmds.resize(maxBatches);
+    _objectData.resize(maxBatches);
     // Allocate GL buffers
     // This is the Vertex Array Object, it specifies how the vertex data should be read by the GPU
     glCreateVertexArrays(1, &_vao);
@@ -613,17 +606,16 @@ Model::Model(std::string_view file)
     // This is the Element Buffer Object (I call it the Index Buffer Object, same thing)
     // it holds all the indices for all the meshes
     glCreateBuffers(1, &_ibo);
-    // This is the object data buffer, it's useful when drawing because it associates all the 
-    // necessary indices (transform index, base color index, ...) to a mesh, allowing the shader
-    // to fetch the information from the other buffers
-    glCreateBuffers(1, &_objectData);
     // This is the transform data buffer, it holds the local transform for each mesh
     glCreateBuffers(1, &_transformData);
-    // This is the texture data buffer, it holds all the texture handles required to draw this model
-    glCreateBuffers(1, &_textureData);
-    // Finally this is the indirect data buffer, it holds all the information required for OpenGL to draw the mesh
-    glGenBuffers(1, &_cmds);
-
+    // Create the object data buffers, they are useful when drawing because they associate all the 
+    // necessary indices (transform index, base color index, ...) to a mesh, allowing the shader
+    // to fetch the information from the other buffers, keep in mind this is per batch.
+    glCreateBuffers(_objectData.size(), _objectData.data());
+    // Finally this is the indirect data buffer, it holds all the information required for OpenGL to draw the mesh,
+    // this is also per batch.
+    glGenBuffers(_cmds.size(), _cmds.data());
+    
     // First, we need to figure out how big our vertex and index buffer should be
     size_t vertexSize = 0;
     size_t indexSize = 0;
@@ -682,7 +674,7 @@ Model::Model(std::string_view file)
 
 Model::~Model() = default;
 
-void Model::Draw() const
+void Model::Draw(const Shader& shader) const
 {
     // Define an object data structure (this should match with the one in the shader)
     struct ObjectData
@@ -691,42 +683,34 @@ void Model::Draw() const
         uint32_t baseColorIndex;
         uint32_t normalIndex;
     };
-    // Reserve some space
-    std::vector<ObjectData> objectData;
-    objectData.reserve(1024);
-    std::vector<MeshIndirectInfo> indirectData;
-    indirectData.reserve(1024);
+    struct BatchData {
+        std::vector<ObjectData> objects;
+        std::vector<MeshIndirectInfo> commands;
+    };
+    std::vector<BatchData> objectBatches(_cmds.size());
+    std::vector<std::set<uint32_t>> textureHandles(_cmds.size());
     // For each mesh
     for (const auto& mesh : _meshes)
     {
+        // Calculate the batch index this mesh belongs to (just divide by the "batch size")
+        const auto index = mesh.baseColorTexture / 16;
         // Get the mesh indirect info structure
-        indirectData.emplace_back(mesh.Info());
+        objectBatches[index].commands.emplace_back(mesh.Info());
         // Get the mesh general information
-        objectData.emplace_back(ObjectData
+        objectBatches[index].objects.emplace_back(ObjectData
         {
+            // Restrict the texture range to [0, 15], because by batching texture
+            // indices must not be "global", but local to the batch group
             mesh.TransformIndex(),
-            mesh.BaseColorTexture(),
+            mesh.BaseColorTexture() % 16,
+            // Exercise: Can you do the same for normal textures?
             mesh.NormalTexture()
         });
+        // Insert the texture index for this batch in a set, this is useful
+        // when binding the textures because we will need unique handles
+        textureHandles[index].insert(_textures[mesh.BaseColorTexture()]);
     }
-    // Copy the texture handles over to the GPU
-    glNamedBufferData(
-        _textureData,
-        _textureHandles.size() * sizeof(uint64_t),
-        _textureHandles.data(),
-        GL_DYNAMIC_DRAW);
-    // Bind the buffer to the uniform buffer, location = 2
-    glBindBufferBase(GL_UNIFORM_BUFFER, 2, _textureData);
-
-    // Copy the object data we just created to the GPU
-    glNamedBufferData(
-        _objectData,
-        objectData.size() * sizeof(ObjectData),
-        objectData.data(),
-        GL_DYNAMIC_DRAW);
-    // Bind the buffer to the storage buffer, location = 0
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, _objectData);
-
+    
     // Copy the transform data we just created to the GPU
     glNamedBufferData(
         _transformData,
@@ -736,23 +720,47 @@ void Model::Draw() const
     // Bind the buffer to the storage buffer, location = 1
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, _transformData);
 
-    // Bind the indirect buffer
-    glBindBuffer(GL_DRAW_INDIRECT_BUFFER, _cmds);
-    // Copy all the indirect mesh information to the GPU
-    glNamedBufferData(
-        _cmds,
-        indirectData.size() * sizeof(MeshIndirectInfo),
-        indirectData.data(),
-        GL_DYNAMIC_DRAW);
+    // Bind the shader because we will be setting uniforms now
+    shader.Bind();
+    // For each batch
+    for (uint32_t index = 0; const auto& batch : objectBatches)
+    {
+        // Write the object data to the current object uniform buffer 
+        glNamedBufferData(
+            _objectData[index],
+            batch.objects.size() * sizeof(ObjectData),
+            batch.objects.data(),
+            GL_DYNAMIC_DRAW);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, _objectData[index]);
 
-    // Finally bind the vertex array and draw the model
-    glBindVertexArray(_vao);
-    glMultiDrawElementsIndirect(
-        GL_TRIANGLES,
-        GL_UNSIGNED_INT,
-        nullptr,
-        indirectData.size(),
-        sizeof(MeshIndirectInfo));
+        // Write the indirect commands to the current indirect buffer
+        glBindBuffer(GL_DRAW_INDIRECT_BUFFER, _cmds[index]);
+        glNamedBufferData(
+            _cmds[index],
+            batch.commands.size() * sizeof(MeshIndirectInfo),
+            batch.commands.data(),
+            GL_DYNAMIC_DRAW);
+
+        // Set all the active textures for this batch
+        for (uint32_t offset = 0; const auto texture : textureHandles[index])
+        {
+            shader.Set(2 + offset, offset);
+            glActiveTexture(GL_TEXTURE0 + offset);
+            glBindTexture(GL_TEXTURE_2D, texture);
+            offset++;
+        }
+        
+        // Finally, bind the VAO and issue the draw call
+        glBindVertexArray(_vao);
+        glMultiDrawElementsIndirect(
+            GL_TRIANGLES,
+            GL_UNSIGNED_INT,
+            nullptr,
+            batch.commands.size(),
+            sizeof(MeshIndirectInfo));
+        // Increment the index to go to the next batch
+        index++;
+    }
 }
 ```
 

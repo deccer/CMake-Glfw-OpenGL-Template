@@ -1,26 +1,26 @@
 #version 460 core
 
-layout (location = 0) in vec3 i_position;
-layout (location = 1) in vec3 i_normal;
-layout (location = 2) in vec2 i_uv;
-layout (location = 3) in vec4 i_tangent;
+layout (location = 0) in vec3 iPosition;
+layout (location = 1) in vec3 iNormal;
+layout (location = 2) in vec2 iUv;
+layout (location = 3) in vec4 iTangent;
 
-layout (location = 0) out vec2 o_uvs;
-layout (location = 1) out flat uint o_base_color_index;
+layout (location = 0) out vec2 oUvs;
+layout (location = 1) out flat uint oBaseColorIndex;
 
-layout (location = 0) uniform mat4 u_projection;
-layout (location = 1) uniform mat4 u_view;
+layout (location = 0) uniform mat4 uProjection;
+layout (location = 1) uniform mat4 uView;
 
 struct ObjectData
 {
-    uint transform_index;
-    uint base_color_index;
-    uint normal_index;
+    uint transformIndex;
+    uint baseColorIndex;
+    uint normalIndex;
 };
 
 layout (binding = 0) buffer BObjectData
 {
-    ObjectData[] object_data;
+    ObjectData[] objectData;
 };
 
 layout (binding = 1) buffer BTransforms
@@ -30,7 +30,7 @@ layout (binding = 1) buffer BTransforms
 
 void main()
 {
-    o_uvs = i_uv;
-    o_base_color_index = object_data[gl_DrawID].base_color_index;
-    gl_Position = u_projection * u_view * transforms[object_data[gl_DrawID].transform_index] * vec4(i_position, 1.0);
+    oUvs = iUv;
+    oBaseColorIndex = objectData[gl_DrawID].baseColorIndex;
+    gl_Position = uProjection * uView * transforms[objectData[gl_DrawID].transformIndex] * vec4(iPosition, 1.0);
 }

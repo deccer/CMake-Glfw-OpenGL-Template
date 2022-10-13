@@ -99,7 +99,8 @@ void ProjectApplication::RenderScene()
         uint32_t baseColorIndex;
         uint32_t normalIndex;
     };
-    struct BatchData {
+    struct BatchData
+    {
         std::vector<ObjectData> objects;
         std::vector<MeshIndirectInfo> indirectCommands;
     };
@@ -177,7 +178,8 @@ void ProjectApplication::RenderUI()
     ImGui::ShowDemoWindow();
 }
 
-void ProjectApplication::MakeShader(std::string_view vertex, std::string_view fragment) {
+void ProjectApplication::MakeShader(std::string_view vertex, std::string_view fragment)
+{
     int success = false;
     char log[1024] = {};
     const auto vertexShaderSource = Slurp(vertex);
@@ -219,7 +221,8 @@ void ProjectApplication::MakeShader(std::string_view vertex, std::string_view fr
     glDeleteShader(fragmentShader);
 }
 
-void ProjectApplication::LoadModel(std::string_view file) {
+void ProjectApplication::LoadModel(std::string_view file)
+{
     // Read GLTF
     cgltf_options options = {};
     cgltf_data* model = nullptr;

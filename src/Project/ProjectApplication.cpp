@@ -75,7 +75,12 @@ bool ProjectApplication::Load()
         spdlog::error("App: Unable to load");
         return false;
     }
-    MakeShader("../../../shaders/main.vert", "../../../shaders/main.frag");
+
+    if (!MakeShader("../../../shaders/main.vert", "../../../shaders/main.frag"))
+    {
+        return false;
+    }
+
     LoadModel("../../../data/models/SM_Deccer_Cubes_Textured.gltf");
 
     return true;
@@ -178,11 +183,11 @@ void ProjectApplication::RenderUI()
     ImGui::ShowDemoWindow();
 }
 
-void ProjectApplication::MakeShader(std::string_view vertex, std::string_view fragment)
+bool ProjectApplication::MakeShader(std::string_view vertexShaderFilePath, std::string_view fragmentShaderFilePath)
 {
     int success = false;
     char log[1024] = {};
-    const auto vertexShaderSource = Slurp(vertex);
+    const auto vertexShaderSource = Slurp(vertexShaderFilePath);
     const char* vertexShaderSourcePtr = vertexShaderSource.c_str();
     const auto vertexShader = glCreateShader(GL_VERTEX_SHADER);
     glShaderSource(vertexShader, 1, &vertexShaderSourcePtr, nullptr);
@@ -191,10 +196,11 @@ void ProjectApplication::MakeShader(std::string_view vertex, std::string_view fr
     if (!success)
     {
         glGetShaderInfoLog(vertexShader, 1024, nullptr, log);
-        std::printf("%s\n", log);
+        spdlog::error(log);
+        return false;
     }
 
-    const auto fragmentShaderSource = Slurp(fragment);
+    const auto fragmentShaderSource = Slurp(fragmentShaderFilePath);
     const char* fragmentShaderSourcePtr = fragmentShaderSource.c_str();
     const auto fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
     glShaderSource(fragmentShader, 1, &fragmentShaderSourcePtr, nullptr);
@@ -203,7 +209,8 @@ void ProjectApplication::MakeShader(std::string_view vertex, std::string_view fr
     if (!success)
     {
         glGetShaderInfoLog(fragmentShader, 1024, nullptr, log);
-        std::printf("%s\b", log);
+        spdlog::error(log);
+        return false;
     }
 
     _shaderProgram = glCreateProgram();
@@ -214,11 +221,15 @@ void ProjectApplication::MakeShader(std::string_view vertex, std::string_view fr
     if (!success)
     {
         glGetProgramInfoLog(_shaderProgram, 1024, nullptr, log);
-        std::printf("%s\b", log);
+        spdlog::error(log);
+
+        return false;
     }
 
     glDeleteShader(vertexShader);
     glDeleteShader(fragmentShader);
+
+    return true;
 }
 
 void ProjectApplication::LoadModel(std::string_view file)
@@ -416,10 +427,10 @@ void ProjectApplication::LoadModel(std::string_view file)
 
     size_t vertexSize = 0;
     size_t indexSize = 0;
-    for (const auto& info : meshCreateInfos)
+    for (const auto& meshCreateInfo : meshCreateInfos)
     {
-        vertexSize += info.Vertices.size() * sizeof(Vertex);
-        indexSize += info.Indices.size() * sizeof(uint32_t);
+        vertexSize += meshCreateInfo.Vertices.size() * sizeof(Vertex);
+        indexSize += meshCreateInfo.Indices.size() * sizeof(uint32_t);
     }
 
     glNamedBufferStorage(_cubes.VertexBuffer, vertexSize, nullptr, GL_DYNAMIC_STORAGE_BIT);

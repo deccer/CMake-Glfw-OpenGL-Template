@@ -74,10 +74,10 @@ protected:
     void RenderScene() override;
     void RenderUI() override;
 
-    void MakeShader(std::string_view vertex, std::string_view fragment);
-    void LoadModel(std::string_view file);
-
 private:
     Model _cubes;
     uint32_t _shaderProgram;
+
+    bool MakeShader(std::string_view vertexShaderFilePath, std::string_view fragmentShaderFilePath);
+    void LoadModel(std::string_view filePath);
 };

@@ -15,4 +15,4 @@ add_executable(Project ${sourceFiles} ${headerFiles})
 
 target_include_directories(Project PRIVATE include)
 target_include_directories(Project.Library PUBLIC include)
-target_link_libraries(Project PRIVATE glad imgui glm spdlog Project.Library)
+target_link_libraries(Project PRIVATE glad glfw imgui glm cgltf stb_image spdlog Project.Library)

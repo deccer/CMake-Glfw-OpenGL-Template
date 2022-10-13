@@ -26,6 +26,7 @@ if(NOT glad_POPULATED)
     set(GLAD_PROFILE "core" CACHE STRING "OpenGL profile")
     set(GLAD_API "gl=4.6" CACHE STRING "API type/version pairs, like \"gl=4.6\", no version means latest")
     set(GLAD_GENERATOR "c" CACHE STRING "Language to generate the binding for")
+    set(GLAD_EXTENSIONS "GL_ARB_bindless_texture" CACHE STRING "Extensions to take into consideration when generating the bindings")
     add_subdirectory(${glad_SOURCE_DIR} ${glad_BINARY_DIR})
 endif()
 

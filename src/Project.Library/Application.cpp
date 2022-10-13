@@ -56,8 +56,9 @@ bool Application::Initialize()
     glfwWindowHint(GLFW_DECORATED, GLFW_TRUE);
     glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_API);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
-    glfwWindowHint(GLFW_VERSION_MAJOR, 4);
-    glfwWindowHint(GLFW_VERSION_MINOR, 6);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     glfwWindowHint(GLFW_SCALE_TO_MONITOR, GLFW_TRUE);
 
     const auto primaryMonitor = glfwGetPrimaryMonitor();
@@ -91,6 +92,21 @@ bool Application::Initialize()
 
 bool Application::Load()
 {
+    glEnable(GL_DEBUG_OUTPUT);
+    glEnable(GL_DEPTH_TEST);
+    glDebugMessageCallback([](GLenum source,
+                              GLenum type,
+                              GLuint,
+                              GLenum severity,
+                              GLsizei,
+                              const GLchar* message,
+                              const void*)
+    {
+        if (type == GL_DEBUG_TYPE_ERROR)
+        {
+            spdlog::error("GL CALLBACK: type = {}, severity = error, message = {}\n", type, message);
+        }
+    }, nullptr);
     glClearColor(0.7f, 0.5f, 0.2f, 1.0f);
 
     glfwSwapInterval(1);

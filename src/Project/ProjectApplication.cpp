@@ -103,47 +103,47 @@ void ProjectApplication::RenderScene()
         std::vector<ObjectData> objects;
         std::vector<MeshIndirectInfo> indirectCommands;
     };
-    std::vector<BatchData> objectBatches(_frog.cmds.size());
-    std::vector<std::set<uint32_t>> textureHandles(_frog.cmds.size());
-    for (const auto& mesh : _frog.meshes)
+    std::vector<BatchData> objectBatches(_cubes.Commands.size());
+    std::vector<std::set<uint32_t>> textureHandles(_cubes.Commands.size());
+    for (const auto& mesh : _cubes.Meshes)
     {
-        const auto index = mesh.baseColorTexture / 16;
+        const auto index = mesh.BaseColorTexture / 16;
         objectBatches[index].indirectCommands.emplace_back(MeshIndirectInfo
         {
-            mesh.indexCount,
+            mesh.IndexCount,
             1,
             mesh.indexOffset,
-            mesh.vertexOffset,
+            mesh.VertexOffset,
             1
         });
         objectBatches[index].objects.emplace_back(ObjectData
         {
-            mesh.transformIndex,
-            mesh.baseColorTexture % 16,
-            mesh.normalTexture
+            mesh.TransformIndex,
+            mesh.BaseColorTexture % 16,
+            mesh.NormalTexture
         });
-        textureHandles[index].insert(_frog.textures[mesh.baseColorTexture]);
+        textureHandles[index].insert(_cubes.Textures[mesh.BaseColorTexture]);
     }
 
     glNamedBufferData(
-        _frog.transformData,
-        _frog.transforms.size() * sizeof(glm::mat4),
-        _frog.transforms.data(),
+        _cubes.TransformData,
+        _cubes.Transforms.size() * sizeof(glm::mat4),
+        _cubes.Transforms.data(),
         GL_DYNAMIC_DRAW);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, _frog.transformData);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, _cubes.TransformData);
 
     for (uint32_t index = 0; const auto& batch : objectBatches)
     {
         glNamedBufferData(
-            _frog.objectData[index],
+            _cubes.ObjectData[index],
             batch.objects.size() * sizeof(ObjectData),
             batch.objects.data(),
             GL_DYNAMIC_DRAW);
-        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, _frog.objectData[index]);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, _cubes.ObjectData[index]);
 
-        glBindBuffer(GL_DRAW_INDIRECT_BUFFER, _frog.cmds[index]);
+        glBindBuffer(GL_DRAW_INDIRECT_BUFFER, _cubes.Commands[index]);
         glNamedBufferData(
-            _frog.cmds[index],
+            _cubes.Commands[index],
             batch.indirectCommands.size() * sizeof(MeshIndirectInfo),
             batch.indirectCommands.data(),
             GL_DYNAMIC_DRAW);
@@ -155,7 +155,7 @@ void ProjectApplication::RenderScene()
             glBindTexture(GL_TEXTURE_2D, texture);
             offset++;
         }
-        glBindVertexArray(_frog.vao);
+        glBindVertexArray(_cubes.InputLayout);
         glMultiDrawElementsIndirect(
             GL_TRIANGLES,
             GL_UNSIGNED_INT,
@@ -229,7 +229,7 @@ void ProjectApplication::LoadModel(std::string_view file) {
     fs::path path(file.data());
     const auto basePath = path.parent_path();
     std::unordered_map<std::string, size_t> textureIds;
-    _frog.textures.reserve(model->materials_count);
+    _cubes.Textures.reserve(model->materials_count);
     const uint32_t maxBatches = model->materials_count / 16 + 1;
     for (uint32_t i = 0; i < model->materials_count; ++i)
     {
@@ -257,8 +257,8 @@ void ProjectApplication::LoadModel(std::string_view file) {
         glTextureSubImage2D(texture, 0, 0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, textureData);
         glGenerateTextureMipmap(texture);
         stbi_image_free((void*)textureData);
-        _frog.textures.emplace_back(texture);
-        textureIds[texturePath] = _frog.textures.size() - 1;
+        _cubes.Textures.emplace_back(texture);
+        textureIds[texturePath] = _cubes.Textures.size() - 1;
     }
 
     uint32_t transformIndex = 0;
@@ -327,19 +327,19 @@ void ProjectApplication::LoadModel(std::string_view file) {
                     {
                         if (positionPtr)
                         {
-                            std::memcpy(&ptr->position, positionPtr + v, sizeof(glm::vec3));
+                            std::memcpy(&ptr->Position, positionPtr + v, sizeof(glm::vec3));
                         }
                         if (normalPtr)
                         {
-                            std::memcpy(&ptr->normal, normalPtr + v, sizeof(glm::vec3));
+                            std::memcpy(&ptr->Normal, normalPtr + v, sizeof(glm::vec3));
                         }
                         if (uvPtr)
                         {
-                            std::memcpy(&ptr->uv, uvPtr + v, sizeof(glm::vec2));
+                            std::memcpy(&ptr->Uv, uvPtr + v, sizeof(glm::vec2));
                         }
                         if (tangentPtr)
                         {
-                            std::memcpy(&ptr->tangent, tangentPtr + v, sizeof(glm::vec4));
+                            std::memcpy(&ptr->Tangent, tangentPtr + v, sizeof(glm::vec4));
                         }
                     }
                 }
@@ -387,10 +387,10 @@ void ProjectApplication::LoadModel(std::string_view file) {
                     0,
                     vertexOffset,
                     indexOffset,
-                    _frog.vbo,
-                    _frog.ibo
+                    _cubes.VertexBuffer,
+                    _cubes.IndexBuffer
                 });
-                cgltf_node_transform_world(node, glm::value_ptr(_frog.transforms.emplace_back()));
+                cgltf_node_transform_world(node, glm::value_ptr(_cubes.Transforms.emplace_back()));
                 vertexOffset += vertexCount * sizeof(Vertex);
                 indexOffset += indexCount * sizeof(uint32_t);
             }
@@ -400,68 +400,68 @@ void ProjectApplication::LoadModel(std::string_view file) {
             }
         }
     }
-    _frog.cmds.resize(maxBatches);
-    _frog.objectData.resize(maxBatches);
+    _cubes.Commands.resize(maxBatches);
+    _cubes.ObjectData.resize(maxBatches);
 
     // Allocate GL buffers
-    glCreateVertexArrays(1, &_frog.vao);
-    glCreateBuffers(1, &_frog.vbo);
-    glCreateBuffers(1, &_frog.ibo);
-    glCreateBuffers(1, &_frog.transformData);
-    glGenBuffers(_frog.cmds.size(), _frog.cmds.data());
-    glCreateBuffers(_frog.objectData.size(), _frog.objectData.data());
+    glCreateVertexArrays(1, &_cubes.InputLayout);
+    glCreateBuffers(1, &_cubes.VertexBuffer);
+    glCreateBuffers(1, &_cubes.IndexBuffer);
+    glCreateBuffers(1, &_cubes.TransformData);
+    glGenBuffers(_cubes.Commands.size(), _cubes.Commands.data());
+    glCreateBuffers(_cubes.ObjectData.size(), _cubes.ObjectData.data());
 
     size_t vertexSize = 0;
     size_t indexSize = 0;
     for (const auto& info : meshCreateInfos)
     {
-        vertexSize += info.vertices.size() * sizeof(Vertex);
-        indexSize += info.indices.size() * sizeof(uint32_t);
+        vertexSize += info.Vertices.size() * sizeof(Vertex);
+        indexSize += info.Indices.size() * sizeof(uint32_t);
     }
 
-    glNamedBufferStorage(_frog.vbo, vertexSize, nullptr, GL_DYNAMIC_STORAGE_BIT);
-    glNamedBufferStorage(_frog.ibo, indexSize, nullptr, GL_DYNAMIC_STORAGE_BIT);
+    glNamedBufferStorage(_cubes.VertexBuffer, vertexSize, nullptr, GL_DYNAMIC_STORAGE_BIT);
+    glNamedBufferStorage(_cubes.IndexBuffer, indexSize, nullptr, GL_DYNAMIC_STORAGE_BIT);
 
-    glVertexArrayVertexBuffer(_frog.vao, 0, _frog.vbo, 0, sizeof(Vertex));
-    glVertexArrayElementBuffer(_frog.vao, _frog.ibo);
+    glVertexArrayVertexBuffer(_cubes.InputLayout, 0, _cubes.VertexBuffer, 0, sizeof(Vertex));
+    glVertexArrayElementBuffer(_cubes.InputLayout, _cubes.IndexBuffer);
 
-    glEnableVertexArrayAttrib(_frog.vao, 0);
-    glEnableVertexArrayAttrib(_frog.vao, 1);
-    glEnableVertexArrayAttrib(_frog.vao, 2);
-    glEnableVertexArrayAttrib(_frog.vao, 3);
+    glEnableVertexArrayAttrib(_cubes.InputLayout, 0);
+    glEnableVertexArrayAttrib(_cubes.InputLayout, 1);
+    glEnableVertexArrayAttrib(_cubes.InputLayout, 2);
+    glEnableVertexArrayAttrib(_cubes.InputLayout, 3);
 
-    glVertexArrayAttribFormat(_frog.vao, 0, 3, GL_FLOAT, GL_FALSE, offsetof(Vertex, position));
-    glVertexArrayAttribFormat(_frog.vao, 1, 3, GL_FLOAT, GL_FALSE, offsetof(Vertex, normal));
-    glVertexArrayAttribFormat(_frog.vao, 2, 2, GL_FLOAT, GL_FALSE, offsetof(Vertex, uv));
-    glVertexArrayAttribFormat(_frog.vao, 3, 4, GL_FLOAT, GL_FALSE, offsetof(Vertex, tangent));
+    glVertexArrayAttribFormat(_cubes.InputLayout, 0, 3, GL_FLOAT, GL_FALSE, offsetof(Vertex, Position));
+    glVertexArrayAttribFormat(_cubes.InputLayout, 1, 3, GL_FLOAT, GL_FALSE, offsetof(Vertex, Normal));
+    glVertexArrayAttribFormat(_cubes.InputLayout, 2, 2, GL_FLOAT, GL_FALSE, offsetof(Vertex, Uv));
+    glVertexArrayAttribFormat(_cubes.InputLayout, 3, 4, GL_FLOAT, GL_FALSE, offsetof(Vertex, Tangent));
 
-    glVertexArrayAttribBinding(_frog.vao, 0, 0);
-    glVertexArrayAttribBinding(_frog.vao, 1, 0);
-    glVertexArrayAttribBinding(_frog.vao, 2, 0);
-    glVertexArrayAttribBinding(_frog.vao, 3, 0);
+    glVertexArrayAttribBinding(_cubes.InputLayout, 0, 0);
+    glVertexArrayAttribBinding(_cubes.InputLayout, 1, 0);
+    glVertexArrayAttribBinding(_cubes.InputLayout, 2, 0);
+    glVertexArrayAttribBinding(_cubes.InputLayout, 3, 0);
 
     for (auto& info : meshCreateInfos)
     {
-        info.vbo = _frog.vbo;
-        info.ibo = _frog.ibo;
+        info.VertexBuffer = _cubes.VertexBuffer;
+        info.IndexBuffer = _cubes.IndexBuffer;
         glNamedBufferSubData(
-            info.vbo,
-            info.vertexOffset,
-            info.vertices.size() * sizeof(Vertex),
-            info.vertices.data());
+            info.VertexBuffer,
+            info.VertexOffset,
+            info.Vertices.size() * sizeof(Vertex),
+            info.Vertices.data());
         glNamedBufferSubData(
-            info.ibo,
-            info.indexOffset,
-            info.indices.size() * sizeof(uint32_t),
-            info.indices.data());
-        _frog.meshes.emplace_back(Mesh
+            info.IndexBuffer,
+            info.IndexOffset,
+            info.Indices.size() * sizeof(uint32_t),
+            info.Indices.data());
+        _cubes.Meshes.emplace_back(Mesh
         {
-            (uint32_t)info.indices.size(),
-            (int32_t)(info.vertexOffset / sizeof(Vertex)),
-            (uint32_t)(info.indexOffset / sizeof(uint32_t)),
-            info.transformIndex,
-            info.baseColorTexture,
-            info.normalTexture
+            (uint32_t)info.Indices.size(),
+            (int32_t)(info.VertexOffset / sizeof(Vertex)),
+            (uint32_t)(info.IndexOffset / sizeof(uint32_t)),
+            info.TransformIndex,
+            info.BaseColorTexture,
+            info.NormalTexture
         });
     }
 }

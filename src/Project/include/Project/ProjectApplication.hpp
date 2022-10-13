@@ -13,56 +13,56 @@
 
 struct Vertex
 {
-    glm::vec3 position;
-    glm::vec3 normal;
-    glm::vec2 uv;
-    glm::vec4 tangent;
+    glm::vec3 Position;
+    glm::vec3 Normal;
+    glm::vec2 Uv;
+    glm::vec4 Tangent;
 };
 
 struct MeshIndirectInfo
 {
-    uint32_t count;
-    uint32_t instanceCount;
-    uint32_t firstIndex;
-    int32_t baseVertex;
-    uint32_t baseInstance;
+    uint32_t Count;
+    uint32_t InstanceCount;
+    uint32_t FirstIndex;
+    int32_t BaseVertex;
+    uint32_t BaseInstance;
 };
 
 struct MeshCreateInfo
 {
-    std::vector<Vertex> vertices;
-    std::vector<uint32_t> indices;
-    uint32_t transformIndex;
-    uint32_t baseColorTexture;
-    uint32_t normalTexture;
-    size_t vertexOffset;
-    size_t indexOffset;
-    uint32_t vbo;
-    uint32_t ibo;
+    std::vector<Vertex> Vertices;
+    std::vector<uint32_t> Indices;
+    uint32_t TransformIndex;
+    uint32_t BaseColorTexture;
+    uint32_t NormalTexture;
+    size_t VertexOffset;
+    size_t IndexOffset;
+    uint32_t VertexBuffer;
+    uint32_t IndexBuffer;
 };
 
 struct Mesh
 {
-    uint32_t indexCount = 0;
-    int32_t vertexOffset = 0;
+    uint32_t IndexCount = 0;
+    int32_t VertexOffset = 0;
     uint32_t indexOffset = 0;
     // NOT OpenGL handles, just indices
-    uint32_t transformIndex = 0;
-    uint32_t baseColorTexture = 0;
-    uint32_t normalTexture = 0;
+    uint32_t TransformIndex = 0;
+    uint32_t BaseColorTexture = 0;
+    uint32_t NormalTexture = 0;
 };
 
 struct Model
 {
-    std::vector<Mesh> meshes;
-    std::vector<uint32_t> textures;
-    std::vector<glm::mat4> transforms;
-    uint32_t vao;
-    uint32_t vbo;
-    uint32_t ibo;
-    std::vector<uint32_t> cmds;
-    std::vector<uint32_t> objectData;
-    uint32_t transformData;
+    std::vector<Mesh> Meshes;
+    std::vector<uint32_t> Textures;
+    std::vector<glm::mat4> Transforms;
+    uint32_t InputLayout;
+    uint32_t VertexBuffer;
+    uint32_t IndexBuffer;
+    std::vector<uint32_t> Commands;
+    std::vector<uint32_t> ObjectData;
+    uint32_t TransformData;
 };
 
 class ProjectApplication : public Application
@@ -78,6 +78,6 @@ protected:
     void LoadModel(std::string_view file);
 
 private:
-    Model _frog;
+    Model _cubes;
     uint32_t _shaderProgram;
 };

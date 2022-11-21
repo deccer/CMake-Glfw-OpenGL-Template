@@ -76,7 +76,7 @@ bool ProjectApplication::Load()
         return false;
     }
 
-    if (!MakeShader("../../../data/shaders/main.vert", "../../../data/shaders/main.frag"))
+    if (!MakeShader("../../../data/shaders/main.vs.glsl", "../../../data/shaders/main.fs.glsl"))
     {
         return false;
     }

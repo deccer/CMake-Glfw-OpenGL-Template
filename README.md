@@ -15,7 +15,7 @@ This template provides a basic `Application` base class, ready to go, including 
 
 `lib` contains the list of dependencies used by projects across the solution, in this case, `imgui`, `spdlog`, `glm` and `tracy`
 
-![Screenshot](res/screenshot.png)
+![Screenshot](screenshots/screenshot.png)
 
 ## For whom is this for?
 

@@ -65,7 +65,7 @@ struct Model
     uint32_t TransformData;
 };
 
-class ProjectApplication : public Application
+class ProjectApplication final : public Application
 {
 protected:
     void AfterCreatedUiContext() override;

@@ -45,6 +45,16 @@ void Application::Run()
     FrameMarkEnd("App Run");
 }
 
+void Application::Close()
+{
+    glfwSetWindowShouldClose(_windowHandle, 1);
+}
+
+bool Application::IsKeyPressed(int32_t key)
+{
+    return glfwGetKey(_windowHandle, key) == GLFW_PRESS;
+}
+
 bool Application::Initialize()
 {
     if (!glfwInit())
@@ -71,6 +81,7 @@ bool Application::Initialize()
     if (_windowHandle == nullptr)
     {
         spdlog::error("Glfw: Unable to create window");
+        glfwTerminate();
         return false;
     }
 

@@ -86,6 +86,14 @@ bool ProjectApplication::Load()
     return true;
 }
 
+void ProjectApplication::Update()
+{
+    if (IsKeyPressed(GLFW_KEY_ESCAPE))
+    {
+        Close();
+    }
+}
+
 void ProjectApplication::RenderScene()
 {
     const auto projection = glm::perspective(glm::radians(80.0f), 1920.0f / 1080.0f, 0.1f, 256.0f);

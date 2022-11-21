@@ -73,6 +73,7 @@ protected:
     bool Load() override;
     void RenderScene() override;
     void RenderUI() override;
+    void Update() override;
 
 private:
     Model _cubes;

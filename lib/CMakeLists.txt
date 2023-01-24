@@ -69,7 +69,7 @@ endif ()
 FetchContent_Declare(
     glm
     GIT_REPOSITORY https://github.com/g-truc/glm
-    GIT_TAG        efec5db081e3aad807d0731e172ac597f6a39447
+    GIT_TAG        d58d06b1ef92aced3b509a95526de788f9841f45
     GIT_SHALLOW    TRUE
     GIT_PROGRESS   TRUE
 )

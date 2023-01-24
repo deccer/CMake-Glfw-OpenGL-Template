@@ -76,12 +76,12 @@ bool ProjectApplication::Load()
         return false;
     }
 
-    if (!MakeShader("../../../data/shaders/main.vs.glsl", "../../../data/shaders/main.fs.glsl"))
+    if (!MakeShader("./data/shaders/main.vs.glsl", "./data/shaders/main.fs.glsl"))
     {
         return false;
     }
 
-    LoadModel("../../../data/models/SM_Deccer_Cubes_Textured.gltf");
+    LoadModel("./data/models/SM_Deccer_Cubes_Textured.gltf");
 
     return true;
 }

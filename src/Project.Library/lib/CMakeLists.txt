@@ -1,5 +1,7 @@
 include(FetchContent)
 
+option(BUILD_SHARED_LIBS "Build shared libraries" OFF)
+option(GLFW_LIBRARY_TYPE "Link glfw static or dynamic" STATIC)
 option(GLFW_BUILD_TESTS "" OFF)
 option(GLFW_BUILD_DOCS "" OFF)
 option(GLFW_INSTALL "" OFF)
@@ -11,6 +13,8 @@ FetchContent_Declare(
     GIT_SHALLOW    TRUE
     GIT_PROGRESS   TRUE
 )
+message("Fetching glfw")
+FetchContent_MakeAvailable(glfw)
 
 FetchContent_Declare(
     glad
@@ -29,6 +33,3 @@ if(NOT glad_POPULATED)
     set(GLAD_EXTENSIONS "GL_ARB_bindless_texture" CACHE STRING "Extensions to take into consideration when generating the bindings")
     add_subdirectory(${glad_SOURCE_DIR} ${glad_BINARY_DIR})
 endif()
-
-message("Fetching glfw")
-FetchContent_MakeAvailable(glfw)

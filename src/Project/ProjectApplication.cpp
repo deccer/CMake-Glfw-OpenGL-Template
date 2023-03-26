@@ -256,31 +256,34 @@ void ProjectApplication::LoadModel(std::string_view file)
     for (uint32_t i = 0; i < model->materials_count; ++i)
     {
         const auto& material = model->materials[i];
-        const auto* image = material.pbr_metallic_roughness.base_color_texture.texture->image;
-        const auto texturePath = FindTexturePath(basePath, image);
-        if (textureIds.contains(texturePath))
+        if (material.has_pbr_metallic_roughness && material.pbr_metallic_roughness.base_color_texture.texture != nullptr)
         {
-            continue;
+            const auto* image = material.pbr_metallic_roughness.base_color_texture.texture->image;
+            const auto texturePath = FindTexturePath(basePath, image);
+            if (textureIds.contains(texturePath))
+            {
+                continue;
+            }
+            uint32_t texture;
+            glCreateTextures(GL_TEXTURE_2D, 1, &texture);
+
+            glTextureParameteri(texture, GL_TEXTURE_WRAP_S, GL_REPEAT);
+            glTextureParameteri(texture, GL_TEXTURE_WRAP_T, GL_REPEAT);
+            glTextureParameteri(texture, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+            glTextureParameteri(texture, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+            int32_t width = 0;
+            int32_t height = 0;
+            int32_t channels = STBI_rgb_alpha;
+            const auto* textureData = stbi_load(texturePath.c_str(), &width, &height, &channels, STBI_rgb_alpha);
+            const auto levels = (uint32_t)std::floor(std::log2(std::max(width, height)));
+            glTextureStorage2D(texture, levels, GL_RGBA8, width, height);
+            glTextureSubImage2D(texture, 0, 0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, textureData);
+            glGenerateTextureMipmap(texture);
+            stbi_image_free((void*)textureData);
+            _cubes.Textures.emplace_back(texture);
+            textureIds[texturePath] = _cubes.Textures.size() - 1;
         }
-        uint32_t texture;
-        glCreateTextures(GL_TEXTURE_2D, 1, &texture);
-
-        glTextureParameteri(texture, GL_TEXTURE_WRAP_S, GL_REPEAT);
-        glTextureParameteri(texture, GL_TEXTURE_WRAP_T, GL_REPEAT);
-        glTextureParameteri(texture, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-        glTextureParameteri(texture, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-        int32_t width = 0;
-        int32_t height = 0;
-        int32_t channels = STBI_rgb_alpha;
-        const auto* textureData = stbi_load(texturePath.c_str(), &width, &height, &channels, STBI_rgb_alpha);
-        const auto levels = (uint32_t)std::floor(std::log2(std::max(width, height)));
-        glTextureStorage2D(texture, levels, GL_RGBA8, width, height);
-        glTextureSubImage2D(texture, 0, 0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, textureData);
-        glGenerateTextureMipmap(texture);
-        stbi_image_free((void*)textureData);
-        _cubes.Textures.emplace_back(texture);
-        textureIds[texturePath] = _cubes.Textures.size() - 1;
     }
 
     uint32_t transformIndex = 0;
@@ -398,14 +401,22 @@ void ProjectApplication::LoadModel(std::string_view file)
                         default: break;
                     }
                 }
-                const auto baseColorURI = FindTexturePath(basePath, primitive.material->pbr_metallic_roughness.base_color_texture.texture->image);
+                std::string baseColorURI = "";
+                if (primitive.material->pbr_metallic_roughness.base_color_texture.texture != nullptr)
+                {
+                    baseColorURI = FindTexturePath(basePath, primitive.material->pbr_metallic_roughness.base_color_texture.texture->image);
+                }
+                else
+                {
+                    baseColorURI = "";
+                }
                 const auto indexCount = indices.size();
                 meshCreateInfos.emplace_back(MeshCreateInfo
                 {
                     std::move(vertices),
                     std::move(indices),
                     transformIndex++,
-                    (uint32_t)textureIds[baseColorURI],
+                    baseColorURI == "" ? 0 :(uint32_t)textureIds[baseColorURI],
                     0,
                     vertexOffset,
                     indexOffset,

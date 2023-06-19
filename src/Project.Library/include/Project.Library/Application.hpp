@@ -19,16 +19,13 @@ protected:
     virtual bool Initialize();
     virtual bool Load();
     virtual void Unload();
-    virtual void RenderScene();
-    virtual void RenderUI();
-    virtual void Update();
+    virtual void RenderScene(float dt);
+    virtual void RenderUI(float dt);
+    virtual void Update(float dt);
 
 
 private:
     GLFWwindow* _windowHandle = nullptr;
-    void Render();
-
-    //elapsed time between frames in seconds, used to allow framerate independent timing calculations
-    double deltaTime;
+    void Render(float dt);
 
 };

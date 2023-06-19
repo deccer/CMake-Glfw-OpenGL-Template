@@ -30,17 +30,17 @@ void Application::Run()
 
     spdlog::info("App: Loaded");
 
-    deltaTime = 0.0;
-    double prevFrame = glfwGetTime();
+    //deltaTime = 0.0;
+    double prevTime = glfwGetTime();
     while (!glfwWindowShouldClose(_windowHandle))
     {
-        double curFrame = glfwGetTime();
-        deltaTime = curFrame - prevFrame;
-        prevFrame = curFrame;
+        double currTime = glfwGetTime();
+        float deltaTime = static_cast<float>(currTime - prevTime);
+        prevTime = currTime;
 
         glfwPollEvents();
-        Update();
-        Render();
+        Update(deltaTime);
+        Render(deltaTime);
     }
 
     spdlog::info("App: Unloading");
@@ -59,11 +59,6 @@ void Application::Close()
 bool Application::IsKeyPressed(int32_t key)
 {
     return glfwGetKey(_windowHandle, key) == GLFW_PRESS;
-}
-
-double Application::GetDeltaTime()
-{
-    return deltaTime;
 }
 
 bool Application::Initialize()
@@ -146,16 +141,16 @@ void Application::Unload()
     glfwTerminate();
 }
 
-void Application::Render()
+void Application::Render(float dt)
 {
     ZoneScopedC(tracy::Color::Red2);
 
-    RenderScene();
+    RenderScene(dt);
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
     {
-        RenderUI();
+        RenderUI(dt);
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
         ImGui::EndFrame();
@@ -164,16 +159,16 @@ void Application::Render()
     glfwSwapBuffers(_windowHandle);
 }
 
-void Application::RenderScene()
+void Application::RenderScene([[maybe_unused]] float dt)
 {
 }
 
-void Application::RenderUI()
+void Application::RenderUI([[maybe_unused]] float dt )
 {
 
 }
 
-void Application::Update()
+void Application::Update([[maybe_unused]] float dt )
 {
 
 }

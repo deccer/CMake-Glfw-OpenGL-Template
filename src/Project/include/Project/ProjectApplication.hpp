@@ -71,15 +71,15 @@ protected:
     void AfterCreatedUiContext() override;
     void BeforeDestroyUiContext() override;
     bool Load() override;
-    void RenderScene() override;
-    void RenderUI() override;
-    void Update() override;
+    void RenderScene(float dt) override;
+    void RenderUI(float dt) override;
+    void Update(float dt) override;
 
 private:
     Model _cubes;
     uint32_t _shaderProgram;
 
-    double elapsedTime = 0.0;
+    float _elapsedTime = 0.0f;
 
     bool MakeShader(std::string_view vertexShaderFilePath, std::string_view fragmentShaderFilePath);
     void LoadModel(std::string_view filePath);

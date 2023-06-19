@@ -30,8 +30,14 @@ void Application::Run()
 
     spdlog::info("App: Loaded");
 
+    deltaTime = 0.0;
+    double prevFrame = glfwGetTime();
     while (!glfwWindowShouldClose(_windowHandle))
     {
+        double curFrame = glfwGetTime();
+        deltaTime = curFrame - prevFrame;
+        prevFrame = curFrame;
+
         glfwPollEvents();
         Update();
         Render();
@@ -53,6 +59,11 @@ void Application::Close()
 bool Application::IsKeyPressed(int32_t key)
 {
     return glfwGetKey(_windowHandle, key) == GLFW_PRESS;
+}
+
+double Application::GetDeltaTime()
+{
+    return deltaTime;
 }
 
 bool Application::Initialize()
@@ -159,10 +170,12 @@ void Application::RenderScene()
 
 void Application::RenderUI()
 {
+
 }
 
 void Application::Update()
 {
+
 }
 
 void Application::AfterCreatedUiContext()

@@ -92,6 +92,8 @@ void ProjectApplication::Update()
     {
         Close();
     }
+
+    elapsedTime += GetDeltaTime();
 }
 
 void ProjectApplication::RenderScene()
@@ -185,6 +187,7 @@ void ProjectApplication::RenderUI()
     ImGui::Begin("Window");
     {
         ImGui::TextUnformatted("Hello World!");
+        ImGui::Text("Time in seconds since startup: %f", elapsedTime);
         ImGui::End();
     }
 

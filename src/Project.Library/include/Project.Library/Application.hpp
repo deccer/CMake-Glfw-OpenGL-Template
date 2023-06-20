@@ -19,13 +19,13 @@ protected:
     virtual bool Initialize();
     virtual bool Load();
     virtual void Unload();
-    virtual void RenderScene(float dt);
-    virtual void RenderUI(float dt);
-    virtual void Update(float dt);
+    virtual void RenderScene(float deltaTime);
+    virtual void RenderUI(float deltaTime);
+    virtual void Update(float deltaTime);
 
 
 private:
     GLFWwindow* _windowHandle = nullptr;
-    void Render(float dt);
+    void Render(float deltaTime);
 
 };

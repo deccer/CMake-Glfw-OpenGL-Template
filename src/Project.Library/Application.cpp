@@ -31,12 +31,12 @@ void Application::Run()
     spdlog::info("App: Loaded");
 
     //deltaTime = 0.0;
-    double prevTime = glfwGetTime();
+    double previousTime = glfwGetTime();
     while (!glfwWindowShouldClose(_windowHandle))
     {
-        double currTime = glfwGetTime();
-        float deltaTime = static_cast<float>(currTime - prevTime);
-        prevTime = currTime;
+        double currentTime = glfwGetTime();
+        float deltaTime = static_cast<float>(currentTime - previousTime);
+        previousTime = currentTime;
 
         glfwPollEvents();
         Update(deltaTime);

@@ -71,9 +71,9 @@ protected:
     void AfterCreatedUiContext() override;
     void BeforeDestroyUiContext() override;
     bool Load() override;
-    void RenderScene(float dt) override;
-    void RenderUI(float dt) override;
-    void Update(float dt) override;
+    void RenderScene(float deltaTime) override;
+    void RenderUI(float deltaTime) override;
+    void Update(float deltaTime) override;
 
 private:
     Model _cubes;

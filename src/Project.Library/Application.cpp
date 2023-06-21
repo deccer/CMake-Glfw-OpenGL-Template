@@ -30,7 +30,6 @@ void Application::Run()
 
     spdlog::info("App: Loaded");
 
-    //deltaTime = 0.0;
     double previousTime = glfwGetTime();
     while (!glfwWindowShouldClose(_windowHandle))
     {

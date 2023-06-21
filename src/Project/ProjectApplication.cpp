@@ -86,15 +86,17 @@ bool ProjectApplication::Load()
     return true;
 }
 
-void ProjectApplication::Update()
+void ProjectApplication::Update(float deltaTime)
 {
     if (IsKeyPressed(GLFW_KEY_ESCAPE))
     {
         Close();
     }
+
+    _elapsedTime += deltaTime;
 }
 
-void ProjectApplication::RenderScene()
+void ProjectApplication::RenderScene([[maybe_unused]] float deltaTime)
 {
     const auto projection = glm::perspective(glm::radians(80.0f), 1920.0f / 1080.0f, 0.1f, 256.0f);
     const auto view = glm::lookAt(
@@ -180,11 +182,13 @@ void ProjectApplication::RenderScene()
     }
 }
 
-void ProjectApplication::RenderUI()
+void ProjectApplication::RenderUI(float deltaTime)
 {
     ImGui::Begin("Window");
     {
         ImGui::TextUnformatted("Hello World!");
+        ImGui::Text("Time in seconds since startup: %f", _elapsedTime);
+        ImGui::Text("The delta time between frames: %f", deltaTime);
         ImGui::End();
     }
 

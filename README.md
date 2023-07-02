@@ -33,6 +33,8 @@ some mesh rendering and texture loading, `spdlog` unifies logging here - as each
 - for VSCode the `CMake Tools` extension from Microsoft
 - a compiler of your choice (Clang, GCC, MSVC)
 
+Make sure to run `git submodule update --init --recursive` upon cloning the repository to ensure that Deccer's Cubes are included.
+
 ## Assumptions
 
 This project template assumes the following things

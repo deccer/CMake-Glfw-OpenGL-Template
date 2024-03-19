@@ -1,6 +1,6 @@
 #pragma once
 
-#include <Project.Library/Application.hpp>
+#include <Project/Application.hpp>
 
 #include <glm/mat4x4.hpp>
 #include <glm/vec4.hpp>

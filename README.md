@@ -44,3 +44,15 @@ This project template assumes the following things
 ## What's next?
 
 You most likely dont want to name your program `Project`. Use your favorite search tool and replace `Project` with `UE6` :)
+If you dont want all that existing spinning cube crap and just want to have a more blanky project, head over to `ProjectApplication.hpp` remove everything which isnt called `ProjectApplication` from above that class, then head over to the 5 method implementations in `ProjectApplication.cpp` namely
+
+```cpp
+ProjectApplication::Load()
+ProjectApplication::RenderScene(float deltaTime)
+ProjectApplication::RenderUI(float deltaTime)
+ProjectApplication::Update(float deltaTime)
+```
+
+and remove their bodies, Load should however `return true;` at least.
+
+If you also want to start a git project of your own without the history of this very project you just cloned, you can just remove the `.git` folder and reinit the repo.

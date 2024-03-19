@@ -60,14 +60,6 @@ static std::string FindTexturePath(const fs::path& basePath, const cgltf_image* 
     return texturePath;
 }
 
-void ProjectApplication::AfterCreatedUiContext()
-{
-}
-
-void ProjectApplication::BeforeDestroyUiContext()
-{
-}
-
 bool ProjectApplication::Load()
 {
     if (!Application::Load())
@@ -84,6 +76,19 @@ bool ProjectApplication::Load()
     LoadModel("./data/models/SM_Deccer_Cubes_Textured.gltf");
 
     return true;
+}
+
+void ProjectApplication::Unload()
+{
+    glDeleteProgram(_shaderProgram);
+    for(auto& texture : _cubes.Textures)
+    {
+        glDeleteTextures(1, &texture);
+    }
+    glDeleteVertexArrays(1, &_cubes.InputLayout);
+    glDeleteBuffers(1, &_cubes.IndexBuffer);
+    glDeleteBuffers(1, &_cubes.VertexBuffer);
+    Application::Unload();
 }
 
 void ProjectApplication::Update(float deltaTime)

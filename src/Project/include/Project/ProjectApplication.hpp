@@ -68,12 +68,11 @@ struct Model
 class ProjectApplication final : public Application
 {
 protected:
-    void AfterCreatedUiContext() override;
-    void BeforeDestroyUiContext() override;
     bool Load() override;
     void RenderScene(float deltaTime) override;
     void RenderUI(float deltaTime) override;
     void Update(float deltaTime) override;
+    void Unload() override;
 
 private:
     Model _cubes;

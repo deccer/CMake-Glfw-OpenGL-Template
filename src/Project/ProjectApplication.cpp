@@ -23,9 +23,9 @@
 #include <queue>
 #include <set>
 
-static std::string Slurp(std::string_view path)
+static std::string ReadTextFromFile(std::string_view filePath)
 {
-    std::ifstream file(path.data(), std::ios::ate);
+    std::ifstream file(filePath.data(), std::ios::ate);
     std::string result(file.tellg(), '\0');
     file.seekg(0);
     file.read((char*)result.data(), result.size());
@@ -204,7 +204,7 @@ bool ProjectApplication::MakeShader(std::string_view vertexShaderFilePath, std::
 {
     int success = false;
     char log[1024] = {};
-    const auto vertexShaderSource = Slurp(vertexShaderFilePath);
+    const auto vertexShaderSource = ReadTextFromFile(vertexShaderFilePath);
     const char* vertexShaderSourcePtr = vertexShaderSource.c_str();
     const auto vertexShader = glCreateShader(GL_VERTEX_SHADER);
     glShaderSource(vertexShader, 1, &vertexShaderSourcePtr, nullptr);
@@ -217,7 +217,7 @@ bool ProjectApplication::MakeShader(std::string_view vertexShaderFilePath, std::
         return false;
     }
 
-    const auto fragmentShaderSource = Slurp(fragmentShaderFilePath);
+    const auto fragmentShaderSource = ReadTextFromFile(fragmentShaderFilePath);
     const char* fragmentShaderSourcePtr = fragmentShaderSource.c_str();
     const auto fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
     glShaderSource(fragmentShader, 1, &fragmentShaderSourcePtr, nullptr);

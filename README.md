@@ -4,16 +4,15 @@
 
 CMake based C++ Project template with support for glfw, glad, imgui, spdlog, tracy, stbi, cgltf
 
-This template is split into three parts
+This template is split into two parts
 
-`Project` and `Project.Library` and `lib`
+`Project` and `lib`
 
 `Project` will be your actual project/game,
-`Project.Library` containing supporting functions, things you might be reusing for something else. It could also contain your graphics/game engine abstractions.
 
 This template provides a basic `Application` base class, ready to go, including window creation via `glfw`, hooking up `OpenGL` via `glad`, preparing UI rendering via `dear imgui`, logging via `spdlog` and comes with profiler capabilities via `tracy` too. The example also loads a model with textures via `cgltf` and `stbi`.
 
-`lib` contains the list of dependencies used by projects across the solution, in this case, `imgui`, `spdlog`, `glm`, `tracy`, `stbi` and `cgltf`.
+`lib` contains the list of dependencies used by projects across the solution, in this case, `glfw`, `glad`, `imgui`, `spdlog`, `glm`, `tracy`, `stbi` and `cgltf`.
 
 The project provides a tiny example of an application which most graphics-engine/game-engine/game developers/vfx artists or perhaps even researchers write, and its always the same, some window glue, some opengl loading,
 some mesh rendering and texture loading, `spdlog` unifies logging here - as each and every project I've seen keeps using `printf` or `cout` or most likely some self-rolled `logger` which is really unnecessary.
@@ -44,4 +43,4 @@ This project template assumes the following things
 
 ## What's next?
 
-You most likely dont want to name your program `Project` and or `Project.Library`. Use your favorite search tool and replace `Project.Library` with `UE6.Engine` and `Project` with `UE6` :)
+You most likely dont want to name your program `Project`. Use your favorite search tool and replace `Project` with `UE6` :)

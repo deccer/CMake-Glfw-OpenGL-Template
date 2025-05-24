@@ -1,13 +1,17 @@
 # Refactoring the Project
 
-### Introduction
+*[GLSL]: OpenGL Shading Language
+
+## Introduction
+
 You have cloned the project, now what?
 
-Having everything in `ProjectApplication.cpp` can and will get
+Having everything in `Main.cpp` can and will get
 annoying as your Engine grows.
 
-You will begin by splitting the application in different files, so 
+You will begin by splitting the application in different files, so
 far the application needs these 3 things to draw the frog:
+
 - Shader
 - Mesh
 - Model
@@ -16,9 +20,11 @@ Since you will create more shaders/models, it will be very useful
 to abstract them away in their own classes, such that it becomes
 much easier to create a new **Model** or a new **Shader**.
 
-### The Shader class
-Let's begin with the shader, here's how a basic shader class 
+## The Shader class
+
+Let's begin with the shader, here's how a basic shader class
 should look like.
+
 ```c++
 class Shader
 {
@@ -34,6 +40,7 @@ private:
     uint32_t _program;
 };
 ```
+
 The `Shader` holds onto a single `uint32_t`, which is the OpenGL handle
 type.
 
@@ -45,14 +52,16 @@ The destructor calls the OpenGL function to destroy the shader program.
 
 The next thing is the functionality, this is very basic, and you may
 expand it to suit your needs.
+
 - `Bind()`: tells OpenGL to use this shader program in the next draw calls, until a new shader is bound.
 - `Set(uint32_t, mat4)`: tells OpenGL to set a `uniform` matrix 4x4 in the shader, at a specific location, if you are not familiar with this, think of this as assigning a value to a "global variable" in the vertex or fragment shader.
 - `Set(uint32_t, int32_t)`: tells OpenGL to set a single `uniform` (unsigned) integer in the shader, at a specific location, if you are not familiar with this, think of this as assigning a value to a "global variable" in the vertex or fragment shader.
 
 Finally, the implementation:
+
 ```c++
 // Helper function to read the whole file
-static std::string Slurp(std::string_view path)
+static std::string ReadTextFromFile(std::string_view path)
 {
     std::ifstream file(path.data(), std::ios::ate);
     std::string result(file.tellg(), '\0');
@@ -69,7 +78,7 @@ Shader::Shader(std::string_view vertex, std::string_view fragment)
     char log[1024] = {};
     
     // Reads the vertex shader
-    const auto vertexShaderSource = Slurp(vertex);
+    const auto vertexShaderSource = ReadTextFromFile(vertex);
     const char* vertexShaderSourcePtr = vertexShaderSource.c_str();
     // Calls OpenGL to make a new vertex shader handle
     const auto vertexShader = glCreateShader(GL_VERTEX_SHADER);
@@ -87,7 +96,7 @@ Shader::Shader(std::string_view vertex, std::string_view fragment)
     }
 
     // Reads the fragment shader 
-    const auto fragmentShaderSource = Slurp(fragment);
+    const auto fragmentShaderSource = ReadTextFromFile(fragment);
     const char* fragmentShaderSourcePtr = fragmentShaderSource.c_str();
     // Calls OpenGL to make a new fragment shader handle
     const auto fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
@@ -118,7 +127,8 @@ Shader::Shader(std::string_view vertex, std::string_view fragment)
         std::printf("%s\b", log);
     }
 
-    // Delete the shader handles, since we have our program they are unnecessary
+    // Program was linked successfully,
+    // therefore we do not need the individual shaders anymore
     glDeleteShader(vertexShader);
     glDeleteShader(fragmentShader);
 }
@@ -143,13 +153,15 @@ void Shader::Set(uint32_t location, int32_t value) const
 
 And that's it, a very basic `Shader` class.
 
-### The Mesh class
+## The Mesh class
+
 A mesh is a collection of vertices and indices that make up the triangles
 (or quads, points, etc.), of the mesh. This collection of vertices is usually
 organized in a "Vertex Format", that is, what kind of data is each vertex of
 a triangle composed of.
 
 This is our vertex format:
+
 ```c++
 struct Vertex
 {
@@ -161,14 +173,16 @@ struct Vertex
 ```
 
 Each vertex will then have a:
+
 - `position` (vec3),
 - `normal` (vec3),
 - `uv` (vec2),
 - `tangent` (vec4)
 
-For a total or 12 components.
+12 components in total (3+3+2+4).
 
 Now let's look at the `Mesh` class
+
 ```c++
 struct MeshCreateInfo
 {
@@ -212,13 +226,14 @@ private:
 };
 ```
 
-It's quite a bit bigger than the `Shader` class, but do not fear, there's not much going on here.
+It's quite a bit bigger than the `Shader` class, but do not fear.
 
 Let's begin with the constructor: it takes a `MeshCreateInfo`, which is a `struct` containing
 all the information needed for the mesh to exist, and it basically copies over the information
 to the class' members.
 
 Then, there are 3 getters:
+
 - `TransformIndex()`
 - `BaseColorTexture()`
 - `NormalTexture()`
@@ -226,15 +241,17 @@ Then, there are 3 getters:
 Since we are putting everything in one big buffer for both transforms and textures, having
 these getters is useful, because it helps us tell OpenGL which mesh uses which texture/transform.
 
-And finally the `Info()` member function, which returns a struct `MeshIndirectInfo` and it contains
-all the information OpenGL needs to draw this mesh, and they are:
-- `count`: How many indices is this mesh made of
+And finally the `Info()` member function, which returns a struct `MeshIndirectInfo`, which contains
+all the information OpenGL needs to draw this mesh:
+
+- `count`: How many indices is this mesh made out of
 - `instanceCount`: How many instances OpenGL should draw
 - `firstIndex`: The starting index offset in the Element Buffer (not a byte offset)
 - `baseVertex`: The starting vertex offset in the Vertex Buffer (not a byte offset)
 - `baseInstance`: Basically unused, it's a free `uint32_t` that you can use however you want, it maps to `gl_BaseInstance` in GLSL
 
 And there's the Mesh class implementation:
+
 ```c++
 #include <Project/Mesh.hpp>
 
@@ -282,12 +299,13 @@ uint32_t Mesh::NormalTexture() const
 
 Pretty straightforward, isn't it? Now onto the real beast, the `Model` class
 
-### The Model class
+## The Model class
+
 This is a bit complicated, so far both `Shader` and `Mesh` were fairly small
-but this is quite long, don't worry if you can't wrap your head around it immediately
-this is not trivial at all.
+but this is quite long, don't worry if you can't wrap your head around it immediately. You can always read over it multiple times and take your time.
 
 Let's begin with the class declaration:
+
 ```c++
 class Model
 {
@@ -317,6 +335,7 @@ private:
 
 As usual, let's look at the constructor: it takes the model path (this only supports glTF for the moment,
 but you may use any model loader you want, e.g. Assimp) and it does all sort of stuff, in order:
+
 - Reads the glTF file with [cgltf](https://github.com/jkuhlmann/cgltf)
 - Loads the glTF buffers
 - Reads all the materials and their textures
@@ -325,13 +344,13 @@ but you may use any model loader you want, e.g. Assimp) and it does all sort of 
 
 Phew, that's a lot of work we have to do, but we'll look at the implementation later.
 
-Now about `Draw()`, this function does a little more than calling `glMultiDrawElementsIndirect()`
-it actually set-ups and writes all the uniform buffers needed for the draw, mainly the object data buffer,
-the texture buffer, and the transform buffer.
+Next, `Draw()`, this function does a little more than calling `glMultiDrawElementsIndirect()`
+it actually setups and writes all the uniform buffers needed for the draw, mainly the object data buffer, the texture buffer, and the transform buffer.
 
 Finally, the implementation:
+
 ```c++
-namespace fs = std::filesystem;
+using namespace fs = std::filesystem;
 
 // Helper function to find the actual texture path given a CGLTF image.
 static std::string FindTexturePath(const fs::path& basePath, const cgltf_image* image)
@@ -410,13 +429,13 @@ Model::Model(std::string_view file)
         const auto* textureData = stbi_load(texturePath.c_str(), &width, &height, &channels, STBI_rgb_alpha);
         // Calculate how many mip levels we need to generate for the texture.
         const auto levels = (uint32_t)std::floor(std::log2(std::max(width, height)));
-        // Actually allocate the texture
+        // Actually allocate storage for the texture
         glTextureStorage2D(texture, levels, GL_RGBA8, width, height);
         // Copy our texture data to the GPU
         glTextureSubImage2D(texture, 0, 0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, textureData);
         // Generate mipmaps
         glGenerateTextureMipmap(texture);
-        // Free texture memory on our end
+        // We dont need the image pixels anymore since they are now on the GPU
         stbi_image_free((void*)textureData);
         // Add the new texture handle to the texture vector
         _textures.emplace_back(texture);
@@ -764,9 +783,15 @@ void Model::Draw(const Shader& shader) const
 }
 ```
 
-### CMake
-Finally, we have to let CMake know that we need to use more files and more dependencies.
+## CMake
+
+Finally, we have to let CMake know that we need to use more files and more dependencies. There is nothing wrong with dependencies by the way.
+Especially if you are just starting out with programming and graphics programming
+in general. This helps you focus on the current project and not get side tracked
+with random other things (nothing wrong with that either).
+
 You want to add all these files in `Project/CMakeLists.txt`
+
 ```cmake
     set(sourceFiles
         Shader.cpp
@@ -784,49 +809,14 @@ You want to add all these files in `Project/CMakeLists.txt`
 ```
 
 About the dependencies, here's how you get them with CMake's all new `FetchContent`
-This should go in `lib/CMakeLists.txt`
-```cmake
-#----------------------------------------------------------------------
-
-FetchContent_Declare(
-    cgltf
-    GIT_REPOSITORY  https://github.com/jkuhlmann/cgltf.git
-    GIT_TAG         master
-    GIT_SHALLOW     TRUE
-    GIT_PROGRESS    TRUE
-)
-FetchContent_GetProperties(cgltf)
-if(NOT cgltf_POPULATED)
-    FetchContent_Populate(cgltf)
-    message("Fetching cgltf")
-
-    add_library(cgltf INTERFACE ${cgltf_SOURCE_DIR}/cgltf.h)
-    target_include_directories(cgltf INTERFACE ${cgltf_SOURCE_DIR})
-endif()
-
-#----------------------------------------------------------------------
-
-FetchContent_Declare(
-    stb_image
-    GIT_REPOSITORY  https://github.com/nothings/stb.git
-    GIT_TAG         master
-    GIT_SHALLOW     TRUE
-    GIT_PROGRESS    TRUE
-)
-FetchContent_GetProperties(stb_image)
-if(NOT stb_image_POPULATED)
-    FetchContent_Populate(stb_image)
-    message("Fetching stb_image")
-
-    add_library(stb_image INTERFACE ${stb_image_SOURCE_DIR}/stb_image.h)
-    target_include_directories(stb_image INTERFACE ${stb_image_SOURCE_DIR})
-endif()
-```
+This should go in `libs/CMakeLists.txt`. For simplicity sake put each individual
+dependency into its own libs/xxx.cmake file. Makes it easier to find later
+if you want to update/edit/remove. Check the current `libs/` folder. `CMakeLists.txt` there will refer to all the individual `cmake` files for all the dependencies.
 
 If you managed to reach the end, then you should have all the tools necessary to
 keep expanding your engine to your liking (make sure to read all the comments),
 but if you are very confused, there are many resources that explain every
 little detail in Modern OpenGL, you could also decide to completely ditch
 Modern OpenGL and instead use only Core GL 3.3 features, like LearnOpenGL.com
-does it's all up to you, just remember that your engine will always have room 
+does it's all up to you, just remember that your engine will always have room
 for improvement, keep learning.

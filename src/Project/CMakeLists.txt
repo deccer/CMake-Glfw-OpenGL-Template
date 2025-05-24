@@ -1,4 +1,3 @@
-
 if(MSVC)
     set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
     set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
@@ -11,7 +10,9 @@ if(MSVC)
     endforeach(OUTPUTCONFIG CMAKE_CONFIGURATION_TYPES)
 endif()
 
-add_custom_target(copy_data ALL COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/data ${CMAKE_CURRENT_BINARY_DIR}/data)   
+add_custom_target(copy_data
+    ALL COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/data ${CMAKE_CURRENT_BINARY_DIR}/data
+)
 
 add_executable(Project
     Main.cpp
@@ -19,6 +20,17 @@ add_executable(Project
 
 add_dependencies(Project copy_data)
 
-target_include_directories(Project PRIVATE include)
+target_include_directories(Project
+    PRIVATE include
+)
 
-target_link_libraries(Project PRIVATE glad glfw imgui glm cgltf stb_image spdlog TracyClient)
+target_link_libraries(Project
+    PRIVATE glfw
+    PRIVATE glad
+    PRIVATE glm
+    PRIVATE imgui
+    PRIVATE cgltf
+    PRIVATE stb
+    PRIVATE spdlog
+    PRIVATE TracyClient
+)
